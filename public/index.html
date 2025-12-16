@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Danz Send Pair</title>
+<style>
+:root{
+  --bg:#0b0f14; --card:#121826; --muted:#8b93a7;
+  --accent:#6cf2c2; --danger:#ff6b6b; --border:#1f2636;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; background:radial-gradient(1200px 600px at 10% -10%, #162044 0%, transparent 40%), var(--bg);
+  color:#e8ebf3; font-family:system-ui,-apple-system,Segoe UI,Roboto;
+  display:grid; place-items:center;
+}
+.card{
+  width:min(420px,92vw);
+  background:linear-gradient(180deg, rgba(255,255,255,.03), transparent), var(--card);
+  border:1px solid var(--border); border-radius:18px;
+  padding:18px 18px 16px; box-shadow:0 20px 60px rgba(0,0,0,.45);
+}
+.header{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+.badge{font-size:12px; color:#0b3; background:rgba(108,242,194,.12); padding:4px 8px; border-radius:999px}
+h1{font-size:18px; margin:0}
+.desc{font-size:13px; color:var(--muted); margin:6px 0 14px}
+
+.grid{display:grid; gap:10px}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+input,button{
+  width:100%; padding:12px 12px; border-radius:12px;
+  background:#0e1422; color:#e8ebf3; border:1px solid var(--border);
+  outline:none; transition:.2s ease;
+}
+input::placeholder{color:#667}
+input:focus{border-color:#2b3a6a}
+small{color:var(--muted); font-size:12px}
+
+.actions{display:flex; gap:10px; margin-top:6px}
+button.primary{
+  background:linear-gradient(135deg,#6cf2c2,#6ca8f2);
+  color:#0b0f14; border:none; font-weight:600;
+}
+button.ghost{background:#0e1422}
+button.danger{background:#1a0f14; border-color:#2b121a; color:#ffb3b3}
+button:disabled{opacity:.55; cursor:not-allowed}
+
+.footer{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:12px; gap:10px
+}
+.check{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)}
+.check input{width:auto}
+
+.log{
+  margin-top:10px; padding:10px; border-radius:12px;
+  background:#0b1020; border:1px dashed var(--border);
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size:12px; min-height:72px; white-space:pre-wrap
+}
+
+.spin{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid rgba(0,0,0,.2); border-top-color:#000;
+  display:inline-block; animation:spin .8s linear infinite; margin-right:6px
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <span class="badge">Dan Pairing</span>
+    <h1>Send Pair</h1>
+  </div>
+  <p class="desc">Spam pairing dengan batas. Max 100x, delay minimal 150ms.</p>
+
+  <div class="grid">
+    <input id="num" placeholder="628xxxx (nomor sendiri)" />
+    <div class="row">
+      <input id="count" type="number" min="1" max="100" value="3" />
+      <input id="delay" type="number" min="150" value="2000" />
+    </div>
+    <small>Jumlah (1–100) • Delay (ms, ≥150)</small>
+  </div>
+
+  <div class="actions">
+    <button id="startBtn" class="primary" onclick="start()">Send Pair</button>
+    <button id="stopBtn" class="danger" onclick="stop()" disabled>STOP</button>
+  </div>
+
+  <div class="footer">
+    <label class="check">
+      <input id="owner" type="checkbox" />
+      Janji gak bakal salah gunain
+    </label>
+    <small id="status">Idle</small>
+  </div>
+
+  <div id="log" class="log">—</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id)
+const setBusy = b => {
+  $('startBtn').disabled = b
+  $('stopBtn').disabled = !b
+  $('status').innerHTML = b ? '<span class="spin"></span>Running' : 'Idle'
+}
+const log = t => $('log').textContent = t
+
+async function start(){
+  setBusy(true)
+  log('Starting...')
+  try{
+    const res = await fetch('/start',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        number:$('num').value,
+        count:$('count').value,
+        delay:$('delay').value,
+        confirmOwner:$('owner').checked
+      })
+    })
+    const data = await res.json()
+    log(JSON.stringify(data,null,2))
+    if(!res.ok) setBusy(false)
+  }catch(e){
+    log('Error: '+e.message)
+    setBusy(false)
+  }
+}
+
+async function stop(){
+  try{
+    const res = await fetch('/stop',{method:'POST'})
+    const data = await res.json()
+    log(JSON.stringify(data,null,2))
+  }finally{
+    setBusy(false)
+  }
+}
+</script>
+</body>
+</html>
